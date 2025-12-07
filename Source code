@@ -1,0 +1,108 @@
+# Projectile motion with drag force by Woramate (6/12/2568)
+import numpy as np
+import matplotlib
+matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+# Constant and values input
+g = 9.8 # m/s^2
+v0 = float(input("initial velocity (m/s): "))
+theta = float(input("initial angle (degrees): "))
+mass = float(input("mass (kg): "))
+beta = float(input("beta ((m/s)/N): ")) # F = -(beta)v (ideal air resistance)
+if mass == 0:
+    mass = 1 # to escape dividing by 0
+
+theta1 = np.radians(theta) # degrees to radian
+
+r = np.array([0.0, 0.0]) # store distance and velocity array
+v = np.array([float(v0 * np.cos(theta1)), float(v0 * np.sin(theta1))])  # x-y component
+
+t = 0
+dt = 0.0422
+steps = int(2 * v0 * np.sin(theta1) / (g * dt)) # having enough number of steps
+
+xs = []
+ys = []
+ts = []
+speeds = []
+
+for i in range(steps):
+    xs.append(r[0])
+    ys.append(r[1])
+    ts.append(t)
+    speeds.append(np.linalg.norm(v)) # magnitude of v
+
+    if r[1] < 0:
+        break # projectile hits the floor = end
+
+    F_drag = -beta * v
+    F_grav = np.array([0, -mass * g]) # downward
+    F = F_drag + F_grav
+
+    a = F / mass
+    v = v + a * dt
+    r = r + v * dt
+
+    t = t + dt
+
+fig, ax = plt.subplots() # animation
+ax.set_title("Projectile Motion with Air Resistance")
+ax.set_xlabel("x (m)")
+ax.set_ylabel("y (m)")
+ax.grid(True)
+
+# screen conditions
+if len(xs) > 0:
+    ax.set_xlim(-max(xs)/6, max(xs) * 1.2) # set initial outer limit of screen
+    ax.set_ylim(-max(ys)/6, max(ys) * 1.2)
+else:
+    ax.set_xlim(0, 10) # in case it doesnt work, the tkAgg still runs
+    ax.set_ylim(0, 10)
+
+if max(ys) > max(xs): # screen fitting
+    ax.set_ylim(-max(ys)/6, max(ys) * 1.2)
+    ax.set_xlim(-max(ys)/6, max(ys) * 1.2)
+else:
+    ax.set_xlim(-max(xs)/6, max(xs) * 1.2)
+    ax.set_ylim(-max(xs)/6, max(xs) * 1.2)
+
+# result
+max_height = max(ys)
+max_distance = max(xs)
+flight_time = ts[-1] # last data
+velo_min = min(speeds)
+
+print(f"Maximum vertical distance: {max_height:.2f} m")
+print(f"Maximum horizontal distance: {max_distance:.2f} m")
+print(f"Flight time: {flight_time:.2f} s")
+print(f"Minimum velocity: {velo_min:.2f} m/s")
+
+max_index = ys.index(max(ys)) # points marker for ymax
+x_ymax = xs[max_index]
+minv_index = speeds.index(min(speeds)) # point marker for v_min
+x_vmin = xs[minv_index]
+y_vmin = ys[minv_index]
+
+ax.plot(x_ymax, max(ys), marker="x", markersize = 6, color = "red")
+ax.plot(max(xs),0 , marker="x", markersize = 6, color = "red")
+ax.plot(x_vmin,y_vmin , marker="x", markersize = 6, color = "orange")
+
+traject, = ax.plot([], [], lw = 1, color = "lime", label = "Trajectory")
+point, = ax.plot([], [], 'o', markersize = 10, color = "green", label = "Projectile")
+time_text = ax.text(0.03, 0.94, "", transform = ax.transAxes, fontsize = 12) # t
+v_text = ax.text(0.03, 0.03, "", transform = ax.transAxes, fontsize = 12) # v(t)
+
+# update frame
+def update(frame):
+    traject.set_data(xs[:frame], ys[:frame])
+    point.set_data([xs[frame]], [ys[frame]])
+    time_text.set_text(f"t = {ts[frame]:.1f} s")
+    v_text.set_text(f"v(t) = {speeds[frame]:.2f} m/s")
+    return traject, point, time_text, v_text
+
+ani = FuncAnimation(fig, update, frames=len(xs), interval=20, blit=True)
+
+plt.legend()
+plt.show()
